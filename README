@@ -1,0 +1,7 @@
+Visualization tracroute progra on googlemap.
+
+Download Database: geolite2-city.mmdb
+http://dev.maxmind.com/geoip/geoip2/geolite2/
+
+compile and install libmaxminddb
+https://github.com/maxmind/libmaxminddb
