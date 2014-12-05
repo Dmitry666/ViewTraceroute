@@ -13,6 +13,10 @@ TEMPLATE = app
 
 CONFIG += c++11
 
+win32 {
+    INCLUDEPATH += ../libmaxminddb/include
+}
+
 SOURCES += main.cpp\
         mainwindow.cpp \
     geocode_data_manager.cpp
@@ -28,5 +32,17 @@ OTHER_FILES += \
 RESOURCES += \
     resources.qrc
 
-LIBS += -L/usr/local/lib
-LIBS += -lmaxminddb
+win32 {
+    LIBS += -L../libmaxminddb/libs
+    debug {
+        LIBS += -lmaxminddbd
+    }
+    release {
+        LIBS += -lmaxminddb
+    }
+}
+
+unix {
+    LIBS += -L/usr/local/lib
+    LIBS += -lmaxminddb
+}
