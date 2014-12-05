@@ -34,8 +34,6 @@ void GeocodeDataManager::replyFinished(QNetworkReply* reply)
     qDebug() << "URL = " << reply->url();
     QString strUrl = reply->url().toString();
 
-    bool ok;
-
     // json is a QString containing the data to convert
     QJsonDocument doc = QJsonDocument::fromJson(json);
     if( doc.isEmpty() )

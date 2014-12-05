@@ -18,7 +18,9 @@
 
 #include <QWebFrame>
 #include <QWebElement>
-//#include <QRegExp>
+
+#include <QMessageBox>
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -29,28 +31,25 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->listWidgetTrace, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(onItemClicked(QListWidgetItem*)));
 
-    connect(ui->pushButtonTracert, SIGNAL(clicked()), this, SLOT(on_pushButtonTracert_clicked()));
+    //connect(ui->pushButtonTracert, SIGNAL(clicked()), this, SLOT(on_pushButtonTracert_clicked()));
 
 
     connect(&m_geocodeDataManager, SIGNAL(coordinatesReady(double,double)), this, SLOT(showCoordinates(double,double)));
     connect(&m_geocodeDataManager, SIGNAL(errorOccured(QString)), this, SLOT(errorOccured(QString)));
 
-    connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(onHttpFinished(QNetworkReply*)));
-
-
-    //
+    //connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(onHttpFinished(QNetworkReply*)));
 
     int status = MMDB_open("GeoLite2-City.mmdb", MMDB_MODE_MMAP, &mmdb);
     if (MMDB_SUCCESS != status)
     {
-            fprintf(stderr, "\n  Can't open %s - %s\n",
-                    "GeoLiteCity.dat", MMDB_strerror(status));
+        fprintf(stderr, "\n  Can't open %s - %s\n",
+                "GeoLiteCity.dat", MMDB_strerror(status));
 
-            if (MMDB_IO_ERROR == status) {
-                fprintf(stderr, "    IO error: %s\n", strerror(errno));
-            }
-            exit(1);
+        if (MMDB_IO_ERROR == status) {
+            fprintf(stderr, "    IO error: %s\n", strerror(errno));
         }
+        exit(1);
+    }
     //
 
     ui->webView->setUrl(QUrl("qrc:/html/google_maps.html"));
@@ -79,10 +78,20 @@ void MainWindow::onItemClicked(QListWidgetItem* item)
 
 void MainWindow::on_pushButtonTracert_clicked()
 {
+    const QString address = ui->lineEditAddress->text();
+    if(address.isEmpty())
+    {
+        QMessageBox msgBox;
+        msgBox.setText("Address is empty.");
+        msgBox.exec();
+        return;
+    }
+
+    m_points.clear();
     ui->listWidgetTrace->clear();
+
     cleanAll();
 
-    const QString address = ui->lineEditAddress->text();
     const QString key = "c73fb6010253f25b1bcecba69496105e44ab435a";
 
 #ifdef WIN32
@@ -110,127 +119,100 @@ void MainWindow::onReadyReadStandardOutput()
     if(m_process == nullptr)
         return;
 
-    const QByteArray bytes = m_process->readAll();
-
+    const QByteArray bytes = m_process->readAllStandardOutput();
     const QString text = QString(bytes);
-    QStringList lines = text.split("\n");
+    m_text += text;
 
-    for(const QString& line : lines)
+    int index = m_text.lastIndexOf("\n");
+    if(index != -1)
     {
-        qDebug() << line;
+        const QString textLines = m_text.left(index + 1);
+        m_text.remove(0, index + 1);
+        const QStringList lines = textLines.split("\n");
 
-#ifdef WIN32
-        static const quint32 ttlIndex = 0;
-        static const quint32 nameIndex = 7;
-        static const quint32 ipIndex = 1;
-        static const quint32 timeIndex = 8;
-#else
-        static const quint32 ttlIndex = 0;
-        static const quint32 nameIndex = 1;
-        static const quint32 ipIndex = 2;
-        static const quint32 timeIndex = 7;
-#endif
-        QStringList words = line.split(" ");
-        words.removeAll("");
-
-        if(words.count() == 9 ) //line.indexOf("traceroute to") == -1)
+        for(const QString& line : lines)
         {
-            quint32 ttl = words[ttlIndex].toInt();
-
-            const QString name = words[nameIndex];
-            QString ip = words[ipIndex];
-            ip.remove("(");
-            ip.remove(")");
-
-            double time = words[timeIndex].toDouble();
-
-            //http://api.db-ip.com/addrinfo?addr=173.194.67.1&api_key=123456789
-            if(ip.indexOf("192.168") == -1)
-            {
-                PointInfo pi;
-                pi.ttl = ttl;
-                pi.name = name;
-                pi.address = ip;
-
-                pi.full = line;
-
-                readCoordinate(pi);
-
-                pi.time = time;
-
-                pushPoint(pi);
-                //m_points.push_back(pi);
-                //qDebug() << line;
-            }
+           onLineOutput(line);
         }
     }
 }
 
 void MainWindow::onProccessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
+    qDebug() << "onProccessFinished";
+
+    Q_UNUSED(exitCode)
+    Q_UNUSED(exitStatus)
+
     if(m_process == nullptr)
         return;
 
     ui->pushButtonTracert->setEnabled(true);
 
-    const QByteArray bytes = m_process->readAll();
+    const QByteArray bytes = m_process->readAllStandardOutput();
+    const QString text = QString(bytes);
+    m_text += text;
+
     //delete m_process;
     m_process = nullptr;
 
-    const QString text = QString(bytes);
-    QStringList lines = text.split("\n");
-
+    const QStringList lines = m_text.split("\n");
     for(const QString& line : lines)
     {
-        qDebug() << line;
-
-#ifdef WIN32
-        static const quint32 ttlIndex = 0;
-        static const quint32 nameIndex = 7;
-        static const quint32 ipIndex = 1;
-        static const quint32 timeIndex = 8;
-#else
-        static const quint32 ttlIndex = 0;
-        static const quint32 nameIndex = 1;
-        static const quint32 ipIndex = 2;
-        static const quint32 timeIndex = 7;
-#endif
-        QStringList words = line.split(" ");
-        words.removeAll("");
-
-        if(words.count() == 9 ) //line.indexOf("traceroute to") == -1)
-        {
-            quint32 ttl = words[ttlIndex].toInt();
-
-            const QString name = words[nameIndex];
-            QString ip = words[ipIndex];
-            ip.remove("(");
-            ip.remove(")");
-
-            double time = words[timeIndex].toDouble();
-
-            //http://api.db-ip.com/addrinfo?addr=173.194.67.1&api_key=123456789
-            if(ip.indexOf("192.168") == -1)
-            {
-                PointInfo pi;
-                pi.ttl = ttl;
-                pi.name = name;
-                pi.address = ip;
-
-                pi.full = line;
-
-                readCoordinate(pi);
-
-                pi.time = time;
-
-                pushPoint(pi);
-                //m_points.push_back(pi);
-                //qDebug() << line;
-            }
-        }
-    };
+       onLineOutput(line);
+    }
 }
 
+void MainWindow::onLineOutput(const QString& line)
+{
+    qDebug() << line;
+
+#ifdef WIN32
+    static const quint32 ttlIndex = 0;
+    static const quint32 nameIndex = 7;
+    static const quint32 ipIndex = 1;
+    static const quint32 timeIndex = 8;
+#else
+    static const quint32 ttlIndex = 0;
+    static const quint32 nameIndex = 1;
+    static const quint32 ipIndex = 2;
+    static const quint32 timeIndex = 7;
+#endif
+
+    QStringList words = line.split(" ");
+    words.removeAll("");
+
+    if(words.count() == 9 ) //line.indexOf("traceroute to") == -1)
+    {
+        quint32 ttl = words[ttlIndex].toInt();
+
+        const QString name = words[nameIndex];
+        QString ip = words[ipIndex];
+        ip.remove("(");
+        ip.remove(")");
+
+        double time = words[timeIndex].toDouble();
+
+        //http://api.db-ip.com/addrinfo?addr=173.194.67.1&api_key=123456789
+        if(ip.indexOf("192.168") == -1)
+        {
+            PointInfo pi;
+            pi.ttl = ttl;
+            pi.name = name;
+            pi.address = ip;
+
+            pi.full = line;
+
+            readCoordinate(pi);
+
+            pi.time = time;
+
+            pushPoint(pi);
+        }
+    }
+}
+
+/*
 void MainWindow::onHttpFinished(QNetworkReply* reply)
 {
     auto findPoint = [&](const QString& address) -> PointInfo* {
@@ -270,6 +252,8 @@ void MainWindow::onHttpFinished(QNetworkReply* reply)
 
 void MainWindow::showCoordinates(double east, double north, bool saveMarker)
 {
+    Q_UNUSED(saveMarker)
+
     qDebug() << "Form, showCoordinates" << east << north;
 
     //QString str =
@@ -284,11 +268,12 @@ void MainWindow::showCoordinates(double east, double north, bool saveMarker)
     //if (saveMarker)
     //    setMarker(east, north, "test");
 }
+*/
 
 void MainWindow::cleanAll()
 {
+    m_markers.clear();
     const QString str = QString("cleanAll()");
-    //qDebug() << str;
     ui->webView->page()->currentFrame()->documentElement().evaluateJavaScript(str);
 }
 
@@ -374,7 +359,6 @@ void MainWindow::addMarker(double east, double north, const QString& caption, co
             .arg(east)
             .arg(caption);
 
-    //qDebug() << str;
     ui->webView->page()->currentFrame()->documentElement().evaluateJavaScript(str);
 
     m_markers.push_back(Market(caption, nodes));
@@ -382,6 +366,7 @@ void MainWindow::addMarker(double east, double north, const QString& caption, co
 
 void MainWindow::updateNode(quint32 index)
 {
+    Q_UNUSED(index)
     //Market& marker = m_markers[index];
     //marker.nodes.push_back(node);
 }

@@ -11,82 +11,83 @@
       src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCkfyXYy56o1La5I3d2rGzFY6RvyGLkYKc&sensor=false">
     </script>
     <script type="text/javascript">
-      var map;
+        var map;
 
-      var markers = [];
-      var windows = [];
+        var markers = [];
+        var windows = [];
 
-      var lines = [];
+        var lines = [];
 
         function updateMarker(index, contentString) {
             var infowindow = windows[index];
             infowindow.content = contentString;
         }
 
-      function addMarker(contentString, north, east, title) {
+        function addMarker(contentString, north, east, title) {
 
-        var infowindow = new google.maps.InfoWindow({
-            content: contentString
-        });
+            var infowindow = new google.maps.InfoWindow({
+                content: contentString
+            });
 
-        var marker = new google.maps.Marker({
-            position: new google.maps.LatLng(north, east),
-            map: map,
-            title: title
-        });
-        markers.push(marker);
-        windows.push(infowindow);
+            var marker = new google.maps.Marker({
+                position: new google.maps.LatLng(north, east),
+                map: map,
+                title: title
+            });
+            markers.push(marker);
+            windows.push(infowindow);
 
-        google.maps.event.addListener(marker, 'click', function() {
-            infowindow.open(map,marker);
-        });
-      }
-
-
-      function addLine(points, color) {
-
-        var flightPlanCoordinates = [];
-        for(var p in points) {
-            flightPlanCoordinates.push(
-                new google.maps.LatLng(points[p].latitude, points[p].longitude)
-            );
+            google.maps.event.addListener(marker, 'click', function() {
+                infowindow.open(map,marker);
+            });
         }
 
-        var flightPath = new google.maps.Polyline({
-            path: flightPlanCoordinates,
-            geodesic: false,
-            strokeColor: color,
-            strokeOpacity: 1.0,
-            strokeWeight: 2
-        });
 
-        flightPath.setMap(map);
-        lines.push(flightPath);
-      }
+        function addLine(points, color) {
 
-      function cleanAll() {
-        for (var i = 0; i < markers.length; i++) {
-            markers[i].setMap(map);
+            var flightPlanCoordinates = [];
+            for(var p in points) {
+                flightPlanCoordinates.push(
+                    new google.maps.LatLng(points[p].latitude, points[p].longitude)
+                );
+            }
+
+            var flightPath = new google.maps.Polyline({
+                path: flightPlanCoordinates,
+                geodesic: false,
+                strokeColor: color,
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            });
+
+            flightPath.setMap(map);
+            lines.push(flightPath);
         }
-        markers = [];
 
-        for (var i = 0; i < lines.length; i++) {
-            lines[i].setMap(map);
+        function cleanAll() {
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(null);
+            }
+            markers = [];
+
+            for (var i = 0; i < lines.length; i++) {
+                lines[i].setMap(null);
+            }
+            lines = [];
+
+            windows = [];
         }
-        lines = [];
 
-        windows = [];
-      }
+        function initialize() {
+            var myOptions = {
+                center: new google.maps.LatLng(-34.397, 150.644),
+                zoom: 8,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                panControl: true
+            };
 
-      function initialize() {
-        var myOptions = {
-          center: new google.maps.LatLng(-34.397, 150.644),
-          zoom: 8,
-          mapTypeId: google.maps.MapTypeId.ROADMAP,
-          panControl: true
-        };
-        map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-      }
+            map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+        }
     </script>
   </head>
   <body onload="initialize()">

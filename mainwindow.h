@@ -27,6 +27,9 @@ namespace Ui {
 class MainWindow;
 }
 
+/**
+ * @brief Point information from every address
+ */
 struct PointInfo
 {
     qint32 ttl;
@@ -58,6 +61,9 @@ struct PointInfo
     {}
 };
 
+/**
+ * @brief Market ont map.
+ */
 struct Market
 {
     QString caption;
@@ -80,6 +86,9 @@ struct Market
     {}
 };
 
+/**
+ * @brief Main window.
+ */
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -89,28 +98,91 @@ public:
     ~MainWindow();
 
 private slots:
+    /**
+     * @brief On item clicked ib trace view.
+     * @param item lis widget item.
+     */
     void onItemClicked(QListWidgetItem* item);
 
+    /**
+     * @brief On clicked trace button.
+     */
     void on_pushButtonTracert_clicked();
+
+    /**
+     * @brief On read standart output from traceroute program.
+     */
     void onReadyReadStandardOutput();
+
+    /**
+     * @brief On traceroute program finished.
+     * @param exitCode
+     * @param exitStatus
+     */
     void onProccessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
-
+    /**
+     * @brief On line output.
+     * @param line output line.
+     */
+    void onLineOutput(const QString& line);
+    /*
     void onHttpFinished(QNetworkReply* reply);
-
     void showCoordinates(double east, double north, bool saveMarker = true);
-
-    void cleanAll();
-
-    void pushPoint(const PointInfo& pi);
-    void addMarker(double east, double north, const QString& caption, const QStringList& nodes);
-    void updateNode(quint32 index);
-    void updateMarket(quint32 index);
-
-    void addLine(const QVector<QVector2D>& points, const QString& color);
-    void setCenter(double east, double north);
+    */
 
 private:
+    /**
+     * @brief Clean all markers.
+     */
+    void cleanAll();
+
+    /**
+     * @brief push new point.
+     * @param pi point information.
+     */
+    void pushPoint(const PointInfo& pi);
+
+    /**
+     * @brief Add new marker on the google map.
+     * @param east
+     * @param north
+     * @param caption
+     * @param nodes inforamtion list in the marker.
+     */
+    void addMarker(double east, double north, const QString& caption, const QStringList& nodes);
+
+    /**
+     * @brief Regenerate poine inforamation.
+     * @param index index point.
+     */
+    void updateNode(quint32 index);
+
+
+    /**
+     * @brief update information into google marker.
+     * @param index marker index.
+     */
+    void updateMarket(quint32 index);
+
+    /**
+     * @brief Add line to the google map.
+     * @param points line points.
+     * @param color line color.
+     */
+    void addLine(const QVector<QVector2D>& points, const QString& color);
+
+    /**
+     * @brief Set view center on map.
+     * @param east
+     * @param north
+     */
+    void setCenter(double east, double north);
+
+    /**
+     * @brief Read database coordinate from point info.
+     * @param pi point info.
+     */
     void readCoordinate(PointInfo& pi);
 
 private:
@@ -118,9 +190,11 @@ private:
 
     QProcess *m_process;
 
-    QUrl url;
-    QNetworkAccessManager qnam;
-    QNetworkReply *reply;
+    //QUrl url;
+    //QNetworkAccessManager qnam;
+    //QNetworkReply *reply;
+
+    QString m_text;
 
     QList<PointInfo> m_points;
     QList<Market> m_markers;
